@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Donaciones ONG</title>
+</head>
+<body>
+
+  <h2>Apoya nuestra ONG</h2>
+
+  <input
+    id="donacion"
+    type="number"
+    placeholder="Monto a donar"
+    min="1"
+    step="0.01"
+  />
+
+  <button id="btnDonar">
+    Donar
+  </button>
+
+  <!-- SDK Sandbox -->
+  <script
+    src="https://static-content-qas.vnforapps.com/v2/js/checkout.js">
+  </script>
+
+  <script>
+
+    document
+      .getElementById("btnDonar")
+      .addEventListener("click", iniciarPago);
+
+    async function iniciarPago() {
+
+      try {
+
+        const monto = document
+          .getElementById("donacion")
+          .value;
+
+        if (!monto || Number(monto) <= 0) {
+          alert("Ingresa un monto válido");
+          return;
+        }
+
+        // Validar SDK
+        if (typeof VisanetCheckout === "undefined") {
+          console.error("SDK no disponible");
+          alert("SDK de Niubiz no cargó");
+          return;
+        }
+
+        // Obtener session token desde backend
+        const response = await fetch("/donaciones/token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            amount: Number(monto).toFixed(2)
+          })
+        });
+
+        const data = await response.json();
+
+        console.log("Respuesta backend:", data);
+
+        // Detectar token automáticamente
+        const sessionToken =
+          data.sessionKey ||
+          data.sessionkey ||
+          data.sessionToken;
+
+        console.log("Session Token:", sessionToken);
+
+        if (!sessionToken) {
+          alert("No se recibió session token");
+          return;
+        }
+
+        // Configurar checkout
+        VisanetCheckout.configure({
+
+          action: 'pay',
+
+          sessiontoken: sessionToken,
+
+          channel: 'web',
+
+          merchantid: '400434303',
+
+          purchasenumber: String(Date.now()),
+
+          amount: Number(monto).toFixed(2),
+
+          expirationminutes: 10,
+
+          timeouturl: 'http://localhost:3000/error',
+
+          merchantlogo:
+            'https://via.placeholder.com/150',
+
+          merchantname: 'Mi ONG',
+
+          formbuttoncolor: '#000000'
+
+        });
+
+        // Abrir checkout
+        VisanetCheckout.open();
+
+      } catch (error) {
+
+        console.error("ERROR:", error);
+
+        alert("Error al iniciar pago");
+
+      }
+
+    }
+
+  </script>
+
+</body>
+</html>
